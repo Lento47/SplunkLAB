@@ -1,0 +1,53 @@
+name: Splunk Deployment Workflow
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-splunk:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        os: ["RedHat", "Ubuntu", "CentOS"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+
+    - name: Install Ansible
+      run: |
+        pip install ansible ansible-lint
+
+    - name: Set environment variables for the current OS
+      run: |
+        echo "OS=${{ matrix.os }}" >> $GITHUB_ENV
+
+    - name: Configure for RedHat
+      if: matrix.os == 'RedHat'
+      run: |
+        echo "Deploying for RedHat"
+        ansible-playbook -i inventory playbook-splunk.yml --extra-vars "target_os=RedHat"
+
+    - name: Configure for Ubuntu
+      if: matrix.os == 'Ubuntu'
+      run: |
+        echo "Deploying for Ubuntu"
+        ansible-playbook -i inventory playbook-splunk.yml --extra-vars "target_os=Ubuntu"
+
+    - name: Configure for CentOS
+      if: matrix.os == 'CentOS'
+      run: |
+        echo "Deploying for CentOS"
+        ansible-playbook -i inventory playbook-splunk.yml --extra-vars "target_os=CentOS"
+
+    - name: Run Ansible Lint
+      run: |
+        ansible-lint playbook-splunk.yml
